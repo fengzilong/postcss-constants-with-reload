@@ -1,6 +1,6 @@
 {
-  "name": "postcss-constants",
-  "version": "0.1.1",
+  "name": "postcss-constants-with-reload",
+  "version": "0.0.1",
   "description": "PostCSS plugin to process imported constants from a file.",
   "keywords": [
     "postcss",
@@ -10,25 +10,29 @@
     "constants",
     "css-modules"
   ],
-  "author": "James Coleman <james.coleman@bugherd.com>",
+  "author": [
+    {
+      "name": "James Coleman <james.coleman@bugherd.com>"
+    },
+    {
+      "name": "mo <feng_zilong@163.com>"
+    }
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/macropodhq/postcss-constants.git"
+    "url": "https://github.com/fengzilong/postcss-constants-with-reload"
   },
-  "bugs": {
-    "url": "https://github.com/macropodhq/postcss-constants/issues"
-  },
-  "homepage": "https://github.com/macropodhq/postcss-constants",
+  "homepage": "https://github.com/fengzilong/postcss-constants-with-reload",
   "dependencies": {
     "lodash": "^3.10.0",
     "postcss": "^4.1.13",
+    "require-reload": "^0.2.2",
     "resolve": "^1.1.6"
   },
   "devDependencies": {
     "chai": "^3.0.0",
     "gulp": "^3.9.0",
-    "gulp-eslint": "^0.14.0",
     "gulp-mocha": "^2.1.2"
   },
   "scripts": {

@@ -1,14 +1,15 @@
 module.exports = {
-  colors: {
-    primary: '#8EE7D3',
-  },
+	colors: {
+		primary: '#8EE7D3',
+		secondary: 'red'
+	},
 
-  queries: {
-    maxWidth: '200px',
-  },
+	queries: {
+		maxWidth: '200px',
+	},
 
-  borders: {
-    weight: '2px',
-    style: 'solid',
-  },
+	borders: {
+		weight: '2px',
+		style: 'solid',
+	},
 };

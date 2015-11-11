@@ -2,78 +2,129 @@ var postcss = require('postcss');
 var nodepath = require('path');
 var assign = require('lodash/object/assign');
 var resolve = require('resolve');
+var forceRequire = require('require-reload');
 
-module.exports = postcss.plugin('postcss-constants', function (opts) {
-    var sets = opts && opts.defaults || {};
-    var globalNode;
+module.exports = postcss.plugin('postcss-constants-with-reload', function(opts) {
+	var sets = opts && opts.defaults || {};
+	var alias = opts && opts.alias || {};
+	var webpack = opts && opts.webpack || {};
+	var regex = /@([\w]+)(\.([\w]+))+/g;
+	var globalNode;
 
-    var regex = /~([\w]+)\.([\w]+)/g;
+	var AT_RULE_PRESERVED = 'charset import namespace media supports document page font-face keyframes viewport'.split(' ');
 
-    var getConstants = function(name, path, directory) {
-        var res = resolve.sync(JSON.parse(path), { basedir: nodepath.dirname(directory) });
-        var requiredSet = name.replace(/~/g, '');
-        var constantSets = require(res);
+	var getConstants = function(name, path, directory) {
+		for (var i in alias) {
+			if (path.indexOf(i) === 0) {
+				var aliasPath = alias[i].replace(/\/$/, '') + '/';
+				path = path.replace(new RegExp('^' + i + '/'), aliasPath);
+				path = nodepath.resolve(path);
+			}
+		}
 
-        if (constantSets[requiredSet]) {
-            if (sets[requiredSet]) {
-                sets[requiredSet] = assign({}, sets[requiredSet], constantSets[requiredSet]);
-            }
+		var res = resolve.sync(path, {
+			basedir: nodepath.dirname(directory)
+		});
 
-            else {
-                sets[requiredSet] = constantSets[requiredSet];
-            }
-        }
-    };
+		if( typeof  webpack.addDependency === 'function' ){
+			//add to dependency
+			//http://webpack.github.io/docs/loaders.html#adddependency
+			//https://github.com/postcss/postcss-import#L92
+			webpack.addDependency( res );
+		 }
+		
+		var constantSets;
 
-    var requiresAction = function(context) {
-        return !!context.match(regex);
-    };
+		try {
+			constantSets = forceRequire(res);
+		} catch (e) {
+			constantSets = {};
+		}
 
-    var getValue = function(constant, parent) {
-        if (!sets[parent]) {
-            throw globalNode.error('No such set `' + parent + '`');
-        }
+		if (sets[name]) {
+			sets[name] = assign({}, sets[name], constantSets);
+		} else {
+			sets[name] = constantSets;
+		}
+	};
 
-        if (!sets[parent][constant]) {
-            throw globalNode.error('No such constant `' + constant + '` in `' + parent + '`');
-        }
-        return sets[parent][constant];
-    };
+	var requiresAction = function(context) {
+		return !!context.match(regex);
+	};
 
-    var strip = function(context) {
-        if (!requiresAction(context)) {
-            return context;
-        }
+	var getValue = function( path ) {
+		var tmp = getPropertyByPath( sets, path );
+		
+		if( typeof tmp === 'undefined' ){
+			if( typeof globalNode !== 'undefined' ){
+				throw globalNode.error('No such path `' + path + '` found in set');
+			}
+		}
+		
+		return tmp;
+	};
 
-        var requires = context.match(regex);
+	function getPropertyByPath( obj, path ){
+		var context = obj, value;
 
-        requires.forEach(function(require) {
-            var matches = regex.exec(require);
-            regex.lastIndex = 0;
-            var constant = matches[2];
-            var constantSet = matches[1];
+		if( typeof context === 'undefined' ){
+			return void 0;
+		}
 
-            context = context.replace(require, getValue(constant, constantSet));
-        });
+		keys = String( path ).split('.');
 
-        return context;
-    };
+		for( var i = 0, len = keys.length; i < len; i++ ){
+			if (i < len - 1) {
+				context = context[ keys[ i ] ];
+				if( typeof context === 'undefined' ){
+					value = void 0;
+					break;
+				}
 
-    return function (css) {
-        css.eachInside(function (node) {
-            globalNode = node;
-            if (node.prop && node.prop.indexOf('~') > -1) {
-                getConstants(node.prop, node.value, node.source.input.from);
-                node.removeSelf();
-            }
+			} else if(i === len - 1){
+				value = context[ keys[ i ] ];
+			}
+		}
 
-            if (node.type === 'decl') {
-                node.value = strip(node.value);
-            }
+		return value;
+	};
 
-            if (node.type === 'atrule') {
-                node.params = strip(node.params);
-            }
-        });
-    };
+	var strip = function(context) {
+		if (!requiresAction(context)) {
+			return context;
+		}
+
+		var requires = context.match(regex);
+
+		requires.forEach(function(req) {
+			context = context.replace(req, getValue( req.replace(/[\s|@]/g, '') ));
+		});
+
+		return context;
+	};
+
+	return function(css) {
+		css.eachInside(function(node) {
+			var name, constantsPath;
+			
+			globalNode = node;
+
+			if (node.type === 'atrule' && !~AT_RULE_PRESERVED.indexOf(node.name)) {
+				name = node.name.match(/[\w|-]+/);
+
+				if (name) {
+					name = name[0];
+					constantsPath = node.params && node.params.replace(/\s/g, '').replace(/['|"]/g, '');
+					getConstants(name, constantsPath, node.source.input.from);
+					node.removeSelf();
+				}
+			} else if (node.type === 'atrule') {
+		        node.params = strip(node.params);
+		    }
+
+		    if (node.type === 'decl') {
+		        node.value = strip(node.value);
+		    }
+		});
+	};
 });
