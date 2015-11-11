@@ -3,15 +3,17 @@ var postcss = require('postcss');
 var path = require('path');
 var plugin = require('./');
 
-var input = '@constants "./test/constants.js"; a{background: blue; color: @constants.colors.primary;}';
+var input = '@constants "./test/constants"; a{background: blue; color: @constants.colors.primary;}';
 
 postcss([ plugin({
 	alias: {
 		test: path.resolve(process.cwd(), './test')
 	},
 	defaults: {
-		colors: {
-			primary: 'red'
+		constants: {
+			colors: {
+				primary: 'red'
+			}
 		}
 	}
 }) ]).process(input).then(function ( result ) {

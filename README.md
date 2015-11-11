@@ -1,25 +1,23 @@
-# PostCSS Constants [![Build Status][ci-img]][ci]
+# PostCSS Constants With Reload
 
 [PostCSS] plugin to process imported constants from a file.
 
 [PostCSS]: https://github.com/postcss/postcss
-[ci-img]:  https://travis-ci.org/macropodhq/postcss-constants.svg
-[ci]:      https://travis-ci.org/macropodhq/postcss-constants
 
 **constants.js**
 ```js
 module.exports = {
   colors: {
     primary: '#8EE7D3',
-  },
+  }
 };
 ```
 
 **input**
 ```css
-~colors: "./constants.js";
+@constants "./constants";
 .foo {
-  color: ~colors.primary;
+  color: @constants.colors.primary;
 }
 ```
 
@@ -44,9 +42,9 @@ module.exports = {
 
 **input**
 ```css
-~borders: "./constants.js";
+@constants "./constants.js";
 .foo {
-  border: ~borders.weight ~borders.style black;
+  border: @constants.borders.weight @constants.borders.style black;
 }
 ```
 
@@ -70,9 +68,9 @@ module.exports = {
 
 **input**
 ```css
-~queries: "./constants.js";
+@constants: "./constants.js";
 
-@media (max-width: ~queries.maxWidth) {
+@media (max-width: @constants.queries.maxWidth) {
   color: blue;
 }
 ```
@@ -87,7 +85,7 @@ module.exports = {
 ## Usage
 
 ```js
-postcss([ require('postcss-constants') ])
+postcss([ require('postcss-constants-with-reload') ])
 ```
 
 You can pass a default set of constants (that can be overriden), if you want to update default constants in webpack hot reload:
@@ -104,5 +102,39 @@ postcss([
   })
 ])
 ```
+
+you can pass an `alias` option, which will be used to resolve related constants file
+
+```js
+postcss([
+  constants({
+    alias: path.resolve( process.cwd(), 'css' )
+  })
+])
+```
+
+then you can write code like this
+
+```css
+@constants: "css/constants.js";
+```
+
+if 'css' was found in alias option, 'css/constants.js' will be parsed to complete path
+
+**webpack user?**
+
+you can pass an `webpack` option in option
+
+```js
+postcss: function( webpack ){
+	return [
+		constantsWithReload({
+			webpack: webpack
+		})
+	];
+}
+```
+
+it will add constants files as dependency. when you modify the constants file, it causes webpack recomplie all related resource and livereload in browser.
 
 Call `postcss-constants` before any plugins that will compute values stored in constants. See [PostCSS] docs for examples for your environment.
