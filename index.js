@@ -11,7 +11,7 @@ module.exports = postcss.plugin('postcss-constants-with-reload', function(opts) 
 	var regex = /@([\w]+)(\.([\w]+))+/g;
 	var globalNode;
 
-	var AT_RULE_PRESERVED = 'charset import namespace media supports document page font-face keyframes viewport'.split(' ');
+	var AT_RULE_PRESERVED = 'charset import namespace media supports document page font-face keyframes -webkit-keyframes viewport'.split(' ');
 
 	var getConstants = function(name, path, directory) {
 		for (var i in alias) {
